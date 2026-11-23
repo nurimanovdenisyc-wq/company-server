@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Создай свою компанию 3D</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif;user-select:none}
+body{width:100%;height:100%;overflow:hidden;background:#000;color:#fff}
+#game{position:fixed;inset:0;z-index:1}
+#ui{position:fixed;inset:0;z-index:10;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between;padding:15px}
+#ui>*{pointer-events:auto}
+#hud{display:flex;gap:10px;flex-wrap:wrap}
+.box{background:rgba(10,15,30,.8);padding:8px 15px;border-radius:10px;font-weight:bold;font-size:16px;color:#4ade80;border:1px solid rgba(255,255,255,.1)}
+#staff{font-size:14px;color:#fff;display:none}
+#badge{font-size:12px;color:#000;background:#fbbf24;display:none;text-transform:uppercase}
+#bottom{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.btn{padding:12px 20px;border:none;border-radius:10px;font-size:14px;font-weight:bold;cursor:pointer;display:none;box-shadow:0 4px 15px rgba(0,0,0,.4)}
+.btn:active{transform:scale(.95)}
+.b-phone{background:#8b5cf6;color:#fff;display:block}
+.b-hire{background:#3b82f6;color:#fff}
+.b-up{background:#eab308;color:#000}
+.screen{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.85);padding:20px;overflow-y:auto;text-align:center}
+.screen.hidden{display:none}
+h1,h2{font-size:26px;margin-bottom:15px}
+p{font-size:16px;margin-bottom:15px;max-width:500px}
+label{font-size:14px;color:#aaa;text-align:left;width:100%;max-width:400px;margin-top:10px}
+input,textarea{width:100%;max-width:400px;padding:12px;border:1px solid #444;border-radius:10px;background:rgba(255,255,255,.1);color:#fff;font-size:16px;margin-top:5px;outline:none}
+textarea{min-height:80px;resize:none}
+button{width:100%;max-width:400px;margin-top:15px;padding:14px;border:none;border-radius:10px;background:#4ade80;color:#000;font-size:16px;font-weight:bold;cursor:pointer}
+.phone{width:100%;max-width:340px;background:#fff;border-radius:20px;border:6px solid #333;overflow:hidden;color:#000;display:flex;flex-direction:column;max-height:90vh}
+.ph-head{background:#3b82f6;color:#fff;padding:12px;text-align:center;font-weight:bold;font-size:16px}
+.ph-tabs{display:flex;background:#e5e7eb}
+.ph-tab{flex:1;padding:10px;text-align:center;font-size:13px;font-weight:bold;color:#666;cursor:pointer;border-bottom:2px solid transparent}
+.ph-tab.active{color:#3b82f6;border-bottom-color:#3b82f6;background:#fff}
+.ph-body{padding:15px;display:flex;flex-direction:column;background:#f8f9fa;overflow-y:auto;flex:1}
+.ph-body p{font-size:14px;margin-bottom:5px;font-weight:bold;color:#555;text-align:left}
+.ph-body textarea{background:#fff;border:1px solid #ccc;color:#000;min-height:80px;margin-bottom:10px}
+.ph-body button{background:#3b82f6;color:#fff;margin-top:0;padding:12px}
+.tab{display:none}
+.tab.active{display:block}
+#notif{position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#4ade80;color:#000;padding:15px 25px;border-radius:10px;font-weight:bold;font-size:16px;z-index:30;display:none;box-shadow:0 5px 20px rgba(0,0,0,.5);text-align:center;width:90%;max-width:400px}
+#rot{display:none;position:fixed;inset:0;background:#000;z-index:999;align-items:center;justify-content:center;font-size:20px;text-align:center;padding:20px}
+@media(orientation:portrait){#rot{display:flex}}
+</style>
+</head>
+<body>
+
+<div id="game"></div>
+
+<div id="ui">
+  <div id="hud">
+    <div class="box" id="money">$1 000 000</div>
+    <div class="box" id="staff">Сотрудников: 0 / 15</div>
+    <div class="box" id="badge">💎 Скин Богача</div>
+  </div>
+  <div id="bottom">
+    <button id="btn-phone" class="btn b-phone">📱 Открыть телефон</button>
+    <button id="btn-hire" class="btn b-hire">Нанять ещё</button>
+    <button id="btn-up" class="btn b-up">Улучшить офис</button>
+  </div>
+</div>
+
+<div id="notif"></div>
+
+<div id="scr-prolog" class="screen">
+  <h2>Новая жизнь</h2>
+  <p>Ты возвращаешься домой и замечаешь пустой ничейный участок рядом...</p>
+  <button id="btn-next">Начать</button>
+  <button id="btn-skip" style="background:#555;margin-top:10px;font-size:14px;padding:10px">Пропустить</button>
+</div>
+
+<div id="scr-phone" class="screen hidden">
+  <div class="phone">
+    <div class="ph-head">Соцсеть</div>
+    <div class="ph-tabs">
+      <div class="ph-tab active" id="t-cr">Создать</div>
+      <div class="ph-tab" id="t-fd">Найти работу</div>
+    </div>
+    <div class="ph-body">
+      <div id="tc" class="tab active">
+        <p>Название компании:</p>
+        <input id="in-name" placeholder="FutureTech">
+        <p>Чем занимается:</p>
+        <textarea id="in-desc" placeholder="Разработка игр..."></textarea>
+        <button id="btn-create">Основать компанию</button>
+      </div>
+      <div id="tf" class="tab">
+        <p>Настоящие вакансии:</p>
+        <div id="jobs-list"><p style="color:#666;font-size:12px">Загрузка...</p></div>
+      </div>
+    </div>
+    <div style="padding:10px;background:#eee;text-align:center">
+      <button id="btn-close" style="background:#ef4444;color:#fff;width:100%;border:none;padding:10px;border-radius:5px">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<div id="scr-res" class="screen hidden">
+  <h2>Результат</h2>
+  <p id="res-text" style="background:rgba(255,255,255,.1);padding:20px;border-radius:10px"></p>
+  <button id="btn-res-ok">Продолжить</button>
+</div>
+
+<div id="rot">Поверните телефон горизонтально 📱</div>
+
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+</script>
+
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ТВОЙ СЕРВЕР НА RENDER
+const SERVER_URL = 'https://sozdai-server.onrender.com';
+
+const st = {money:1000000,compName:'',compDesc:'',emp:0,maxEmp:15,hireCost:50000,officeLvl:1,inc:100};
+const sv = localStorage.getItem('companyGameSave');
+if(sv) Object.assign(st, JSON.parse(sv));
+
+const $ = id => document.getElementById(id);
+const screens = ['scr-prolog','scr-phone','scr-res'];
+const show = id => {screens.forEach(s=>$(s).classList.add('hidden'));if(id)$(id).classList.remove('hidden');};
+
+function ui(){
+  $('money').textContent = '$'+st.money.toLocaleString('ru-RU');
+  $('staff').textContent = `Сотрудников: ${st.emp} / ${st.maxEmp}`;
+  if(st.emp>0){$('staff').style.display='block';$('money').style.display='block';}
+  if(st.emp>0&&st.emp<st.maxEmp){$('btn-hire').style.display='block';$('btn-hire').textContent=`Нанять ($${st.hireCost.toLocaleString('ru-RU')})`;$('btn-hire').style.opacity=st.money>=st.hireCost?'1':'0.5';}
+  else $('btn-hire').style.display='none';
+  if(st.emp>0&&st.officeLvl<5){$('btn-up').style.display='block';const c=100000*st.officeLvl;$('btn-up').textContent=`Улучшить ($${c.toLocaleString('ru-RU')})`;$('btn-up').style.opacity=st.money>=c?'1':'0.5';}
+  else $('btn-up').style.display='none';
+  if(st.money>=1000000000){$('badge').style.display='block';$('money').style.color='#fbbf24';}
+  localStorage.setItem('companyGameSave',JSON.stringify(st));
+}
+
+// ===== СЕТЬ =====
+let sock, jobs=[];
+sock = io(SERVER_URL);
+sock.on('init-vacancies',d=>{jobs=d;renderJobs();});
+sock.on('new-vacancy',j=>{jobs.unshift(j);renderJobs();});
+
+function renderJobs(){
+  const l=$('jobs-list');
+  if(!sock||!sock.connected){l.innerHTML='<p style="color:red;font-size:12px">Нет связи с сервером</p>';return;}
+  l.innerHTML='';
+  if(jobs.length===0){l.innerHTML='<p style="color:#666;font-size:12px">Нет вакансий</p>';return;}
+  jobs.forEach(j=>{
+    const c=document.createElement('div');
+    c.style.cssText='background:#fff;border:1px solid #ddd;border-radius:8px;padding:10px;margin-bottom:10px;text-align:left;display:flex;justify-content:space-between;align-items:center';
+    c.innerHTML=`<div><strong style="color:#3b82f6;font-size:14px">${j.company}</strong><br><span style="font-size:12px;color:#666">${j.desc}</span></div><button onclick="applyToJob(${j.id})" style="padding:6px 10px;font-size:12px;background:#8b5cf6;border:none;border-radius:6px;color:#fff">Откликнуться</button>`;
+    l.appendChild(c);
+  });
+}
+
+window.applyToJob = id => {
+  const j=jobs.find(x=>x.id===id); if(!j)return;
+  if(sock)sock.emit('apply-job',j);
+  show(null);
+  const n=$('notif');n.textContent=`🚗 Едем в "${j.company}"...`;n.style.display='block';
+  let t=0;
+  const anim=()=>{t+=0.02;if(t<1){if(car)car.position.z-=0.5;if(pers&&t>0.2)pers.position.y=-2;requestAnimationFrame(anim);}else{n.style.display='none';$('res-text').textContent=`✅ Собеседование в "${j.company}" пройдено!`;show('scr-res');}};
+  anim();
+};
+
+// ===== 3D =====
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87ceeb);
+scene.fog = new THREE.Fog(0x87ceeb,30,100);
+const cam = new THREE.PerspectiveCamera(45,innerWidth/innerHeight,0.1,1000);
+cam.position.set(25,20,25);
+const ren = new THREE.WebGLRenderer({antialias:true});
+ren.setSize(innerWidth,innerHeight);ren.setPixelRatio(Math.min(devicePixelRatio,2));
+ren.shadowMap.enabled=true;ren.shadowMap.type=THREE.PCFSoftShadowMap;
+$('game').appendChild(ren.domElement);
+const ctrl = new OrbitControls(cam,ren.domElement);
+ctrl.enableDamping=true;ctrl.maxPolarAngle=Math.PI/2-0.05;ctrl.minDistance=10;ctrl.maxDistance=60;ctrl.target.set(0,2,0);ctrl.enabled=false;
+
+scene.add(new THREE.AmbientLight(0xffffff,0.6));
+const sun = new THREE.DirectionalLight(0xfff5e6,1.5);
+sun.position.set(20,30,10);sun.castShadow=true;
+sun.shadow.mapSize.width=2048;sun.shadow.mapSize.height=2048;
+sun.shadow.camera.left=-30;sun.shadow.camera.right=30;sun.shadow.camera.top=30;sun.shadow.camera.bottom=-30;
+scene.add(sun);
+
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(100,100),new THREE.MeshStandardMaterial({color:0x4caf50,roughness:0.8}));
+ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
+const road = new THREE.Mesh(new THREE.PlaneGeometry(6,100),new THREE.MeshStandardMaterial({color:0x333333,roughness:0.9}));
+road.rotation.x=-Math.PI/2;road.position.y=0.01;road.receiveShadow=true;scene.add(road);
+
+let pers,car;
+function mkPers(x,z){
+  pers=new THREE.Group();
+  const b=new THREE.Mesh(new THREE.CapsuleGeometry(0.4,1,4,8),new THREE.MeshStandardMaterial({color:0x3b82f6}));
+  b.position.y=1.2;b.castShadow=true;pers.add(b);
+  const h=new THREE.Mesh(new THREE.SphereGeometry(0.35,16,16),new THREE.MeshStandardMaterial({color:0xffccaa}));
+  h.position.y=2.1;h.castShadow=true;pers.add(h);
+  pers.position.set(x,0,z);scene.add(pers);
+}
+function mkCar(x,z){
+  car=new THREE.Group();
+  const b=new THREE.Mesh(new THREE.BoxGeometry(2,1,4),new THREE.MeshStandardMaterial({color:0xef4444,metalness:0.8,roughness:0.2}));
+  b.position.y=0.8;b.castShadow=true;car.add(b);
+  const r=new THREE.Mesh(new THREE.BoxGeometry(1.8,0.8,2),new THREE.MeshStandardMaterial({color:0x111111}));
+  r.position.set(0,1.7,-0.5);r.castShadow=true;car.add(r);
+  const wg=new THREE.CylinderGeometry(0.4,0.4,0.2,16),wm=new THREE.MeshStandardMaterial({color:0x111111});
+  [[-1,0.4,1.2],[1,0.4,1.2],[-1,0.4,-1.2],[1,0.4,-1.2]].forEach(p=>{
+    const w=new THREE.Mesh(wg,wm);w.rotation.z=Math.PI/2;w.position.set(...p);w.castShadow=true;car.add(w);
+  });
+  car.position.set(x,0,z);scene.add(car);
+}
+function mkHouse(x,z){
+  const g=new THREE.Group();
+  const w=new THREE.Mesh(new THREE.BoxGeometry(6,4,6),new THREE.MeshStandardMaterial({color:0xf5deb3}));
+  w.position.y=2;w.castShadow=true;w.receiveShadow=true;g.add(w);
+  const r=new THREE.Mesh(new THREE.ConeGeometry(5,3,4),new THREE.MeshStandardMaterial({color:0x8b0000}));
+  r.position.y=5.5;r.rotation.y=Math.PI/4;r.castShadow=true;g.add(r);
+  g.position.set(x,0,z);scene.add(g);
+}
+mkHouse(-10,-10);mkPers(0,0);mkCar(-5,5);
+const office=new THREE.Mesh(new THREE.BoxGeometry(8,10,8),new THREE.MeshStandardMaterial({color:0xd0d0d0,roughness:0.2,metalness:0.5}));
+office.position.set(10,5,-10);office.castShadow=true;office.receiveShadow=true;scene.add(office);
+
+let animating=false;
+function startAnim(){
+  animating=true;ctrl.enabled=false;
+  const sp=new THREE.Vector3(30,25,30),ep=new THREE.Vector3(15,10,15);
+  const stg=new THREE.Vector3(0,0,0),etg=new THREE.Vector3(0,2,0);
+  let t=0;const dur=2500,st=performance.now();
+  function step(now){
+    if(!animating)return;
+    t=(now-st)/dur;if(t>1)t=1;
+    const e=t<0.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+    cam.position.lerpVectors(sp,ep,e);ctrl.target.lerpVectors(stg,etg,e);
+    if(t<1)requestAnimationFrame(step);else{animating=false;ctrl.enabled=true;}
+  }
+  requestAnimationFrame(step);
+}
+
+// ===== ИНТЕРФЕЙС =====
+$('btn-next').onclick=()=>{show(null);startAnim();};
+$('btn-skip').onclick=()=>{show(null);ctrl.enabled=true;cam.position.set(15,10,15);ctrl.target.set(0,2,0);};
+$('t-cr').onclick=()=>{$('t-cr').classList.add('active');$('t-fd').classList.remove('active');$('tc').classList.add('active');$('tf').classList.remove('active');};
+$('t-fd').onclick=()=>{$('t-fd').classList.add('active');$('t-cr').classList.remove('active');$('tf').classList.add('active');$('tc').classList.remove('active');renderJobs();};
+$('btn-phone').onclick=()=>{show('scr-phone');renderJobs();};
+$('btn-close').onclick=()=>show(null);
+$('btn-create').onclick=()=>{
+  const n=$('in-name').value.trim(),d=$('in-desc').value.trim();
+  if(!n||!d){alert('Заполни поля');return;}
+  if(sock&&sock.connected)sock.emit('add-vacancy',{company:n,desc:d});
+  st.compName=n;st.compDesc=d;ui();show(null);
+  const nt=$('notif');nt.textContent="🏢 Компания создана!";nt.style.background='#4ade80';nt.style.display='block';setTimeout(()=>nt.style.display='none',3000);
+};
+$('btn-res-ok').onclick=()=>{show(null);if(car)car.position.set(-5,0,5);if(pers)pers.position.set(0,0,0);ctrl.enabled=true;};
+$('btn-hire').onclick=()=>{if(st.money>=st.hireCost&&st.emp<st.maxEmp){st.money-=st.hireCost;st.emp++;st.hireCost+=25000;ui();}};
+$('btn-up').onclick=()=>{const c=100000*st.officeLvl;if(st.money>=c&&st.officeLvl<5){st.money-=c;st.officeLvl++;ui();}};
+
+setInterval(()=>{if(st.emp>0){st.money+=st.inc*st.emp;ui();}},1000);
+
+function loop(){
+  requestAnimationFrame(loop);
+  if(!animating)ctrl.update();
+  if(pers&&pers.position.y>-1)pers.position.y=Math.sin(Date.now()*0.002)*0.05;
+  ren.render(scene,cam);
+}
+addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();ren.setSize(innerWidth,innerHeight);});
+
+show('scr-prolog');
+loop();
+</script>
+</body>
+  </html>
